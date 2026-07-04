@@ -132,9 +132,3 @@ python decision_tree.py
 ```bash
 python randomforest.py
 ```
-
-```bash
-git add README.md
-git commit -m "docs: finalize comprehensive master technical reference guide"
-git push origin main
-```
