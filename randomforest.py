@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
 
 # 1. Load data
@@ -26,7 +26,7 @@ categorical_features = ['type', 'customer_segment',
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42)
 
-print("--- Building the Decision Tree Pipeline ---")
+print("--- Building Random Forest Pipeline ---")
 
 preprocessor = ColumnTransformer(
     transformers=[
@@ -36,26 +36,28 @@ preprocessor = ColumnTransformer(
     remainder='passthrough'
 )
 
-pipeline_dt = Pipeline(steps=[
+pipeline_rf = Pipeline(steps=[
     ('preprocessing', preprocessor),
-    ('classifier', DecisionTreeClassifier(max_depth=10, random_state=42))
+    ('classifier', RandomForestClassifier(
+        n_estimators=100, max_depth=12, random_state=42, n_jobs=-1))
 ])
 
 # Train
-pipeline_dt.fit(X_train, y_train)
-print("Decision Tree pipeline training complete!")
+print("\n--- Training Random Forest (100 Trees Voting) ---")
+pipeline_rf.fit(X_train, y_train)
+print("Random Forest training complete!")
 
 # Evaluate (ADDED BACK THE METRICS)
-y_pred_dt = pipeline_dt.predict(X_test)
+y_pred_rf = pipeline_rf.predict(X_test)
 print(
-    f"\nPipeline Accuracy on Raw Test Data: {accuracy_score(y_test, y_pred_dt):.4f}")
+    f"\nRandom Forest Accuracy on Raw Test Data: {accuracy_score(y_test, y_pred_rf):.4f}")
 print("\nDetailed Classification Report:")
-print(classification_report(y_test, y_pred_dt))
+print(classification_report(y_test, y_pred_rf))
 
 # =========================================================
-# 🔮 PREDICTING A COMPLETELY RAW NEW ORDER
+# 🔮 PREDICTING A COMPLETELY RAW NEW ORDER (RANDOM FOREST)
 # =========================================================
-print("\n--- Testing Pipeline with a Mock Live Order ---")
+print("\n--- Testing Random Forest Pipeline with a Mock Live Order ---")
 
 live_order = pd.DataFrame([{
     'type': 'TRANSFER',
@@ -69,9 +71,14 @@ live_order = pd.DataFrame([{
     'shipping_mode': 'Standard Class'
 }])
 
-prediction = pipeline_dt.predict(live_order)
-probabilities = pipeline_dt.predict_proba(live_order)
+prediction = pipeline_rf.predict(live_order)
+probabilities = pipeline_rf.predict_proba(live_order)
 
 print(f"Prediction Result: Class {prediction[0]}")
+if prediction[0] == 1:
+    print("🚨 ACTION REQUIRED: Random Forest flags this order as HIGH RISK for delay!")
+else:
+    print("✅ SAFE: Random Forest predicts this order will arrive on time.")
+
 print(
-    f"Confidence: {probabilities[0][0]*100:.1f}% On-Time | {probabilities[0][1]*100:.1f}% Late")
+    f"Forest Voting Breakdown: {probabilities[0][0]*100:.1f}% of trees voted On-Time | {probabilities[0][1]*100:.1f}% of trees voted Late")
